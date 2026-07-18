@@ -197,7 +197,39 @@ Tune **with the TPU sleeve fitted** — the lenses diffuse and dim the dots.
   it's the hardware series-resistor/level topic from the spec, not firmware.
 - **Note:** the breathe scene exists (`orbit_glow_breathe()`) but nothing
   triggers it until item 7 wires it to proximity wake.
-## 8. Wake: IMU wake-on-motion + CAP proximity        — PR #7 (item 7)
+
+## 8. Wake: IMU wake-on-motion + CAP proximity  _(PR item 7)_
+Deep sleep is nRF System OFF; **waking is a full reboot** (expect the boot
+glow breathe, then BLE reconnect under it — that's the intended masking).
+Wake sources are armed by `orbit,wake` (`modules/orbit/src/wake.c`) on the
+way down. All register values are AN4987/datasheet starting points — this
+section is the tuning pass.
+- [ ] **Observe:** let the device deep-sleep (30 min idle, or shorten
+  `CONFIG_ZMK_IDLE_SLEEP_TIMEOUT` for the bench). Nudge the desk vs. pick the
+  unit up. **Expected:** desk vibrations do NOT wake it; picking it up does.
+  **Tune:** `wake-threshold` on the `wake@6a` node (steps of 31.25 mg at
+  2 g full scale; 2 = 62.5 mg). Raise for fewer false wakes.
+- [ ] **Observe:** with the unit asleep, bring a hand near the slider edge
+  (CS7/CS8 are ganged as the proximity antenna, sleeve fitted).
+  **Expected:** approach wakes it before contact. **Tune:**
+  `proximity-sensitivity` (0–7) and `proximity-threshold` on `wake@6a`.
+  Too sensitive self-wakes from drift — verify it stays asleep overnight.
+- [ ] **Observe:** on every wake/boot: glow breathes for ~2 s
+  (`breathe-ms`) while BLE reconnects; typing/pointing works as soon as
+  reconnect completes. If reconnect routinely outlives the breathe, raise
+  `breathe-ms`.
+- [ ] **Measure (DoD):** soft-sleep current, target **< 50 µA**. Budget:
+  nRF System OFF ~1 µA + IMU low-power 26 Hz ~5 µA + CAP1188 standby
+  (dominant term, duty-cycled) + DRV2605/LED quiescents. If over budget the
+  knob is the CAP1188 STANDBY_CONFIG cycle time (reg 0x41 — not yet exposed
+  in DT; raw default 0x39 ≈ 70 ms cycles) and, if needed, dropping the
+  proximity wake entirely (motion-only wake still meets the spec's intent).
+- [ ] **Observe:** wake works with the device on USB too (System OFF + USB
+  is a corner: charger keeps the rail up — confirm no boot loop).
+
+<!--
+Items below are placeholders for the subsystems each numbered work-package PR
+introduces. Each PR appends its concrete tuning points and pass criteria here.
 ## 9. BLE profiles + gesture switch                   — PR #8 (item 8)
 ## 10. Crown wheel scroll                             — PR #9 (item 9)
 ## 11. Manufacturing test mode                        — spec §6

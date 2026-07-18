@@ -1,0 +1,56 @@
+# Copyright (c) 2026 ORBit
+# SPDX-License-Identifier: MIT
+
+description: |
+  ORBit sleep/wake sources (spec §4 item 7). On the ZMK SLEEP transition,
+  arms two System-OFF wake paths, then lets ZMK power the SoC off:
+
+    - LSM6DS3TR-C wake-on-motion, programmed via raw I2C (this node sits at
+      the IMU's bus address; no sensor driver is used or needed) with the
+      interrupt routed to INT1 and the pin armed as a level wake (nRF SENSE).
+    - CAP1188 standby proximity: CS7+CS8 ganged as a proximity antenna in
+      the chip's low-power cycled standby mode; ALERT armed as the second
+      wake pin.
+
+  Waking from System OFF is a reset, so "wake" is a fresh boot; at boot this
+  module triggers the glow breathe scene to mask the 1-2 s BLE reconnect.
+
+compatible: "orbit,wake"
+
+on-bus: i2c
+
+properties:
+  reg:
+    type: array
+    required: true
+  imu-int-gpios:
+    type: phandle-array
+    required: true
+    description: LSM6DS3TR-C INT1 (P0.11 on the XIAO internal wiring).
+  touch:
+    type: phandle
+    required: true
+    description: |
+      The CAP1188 node (microchip,cap12xx). Provides the bus address for the
+      standby-proximity register writes and the ALERT pin (its int-gpios).
+  wake-threshold:
+    type: int
+    default: 2
+    description: |
+      IMU WAKE_UP_THS in FS/64 steps at 2 g full scale (2 = 62.5 mg).
+      Raise if the device wakes from desk bumps; lower if a deliberate
+      touch doesn't wake it.
+  proximity-sensitivity:
+    type: int
+    default: 6
+    description: |
+      CAP1188 STANDBY_SENSITIVITY (0-7, higher = more sensitive). Tune with
+      the sleeve fitted; too high self-triggers on drift.
+  proximity-threshold:
+    type: int
+    default: 4
+    description: CAP1188 STANDBY_THRESHOLD delta counts for proximity.
+  breathe-ms:
+    type: int
+    default: 2000
+    description: Boot breathe duration (the BLE reconnect mask).

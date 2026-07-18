@@ -35,3 +35,14 @@ config ORBIT_GLOW
 	  Amber glow scenes on the SK6812 chain (spec item 6): low-duty idle,
 	  zone flash on touch, breathe hook for item 7's wake mask, all-off on
 	  ZMK idle/sleep. Subscribes to ZMK activity events.
+
+config ORBIT_WAKE
+	bool "ORBit sleep wake sources (IMU motion + touch proximity)"
+	default y
+	depends on DT_HAS_ORBIT_WAKE_ENABLED
+	depends on I2C
+	depends on GPIO
+	help
+	  Arms LSM6DS3TR-C wake-on-motion and CAP1188 standby proximity as
+	  System OFF wake pins on the ZMK sleep transition, and triggers the
+	  boot glow breathe that masks BLE reconnect (spec item 7).
