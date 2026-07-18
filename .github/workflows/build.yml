@@ -43,12 +43,16 @@ jobs:
         working-directory: zmk-config
         run: west zephyr-export
 
+      # ZMK_EXTRA_MODULES (not ZEPHYR_EXTRA_MODULES — ZMK's CMake overwrites
+      # that, prepending ZMK_EXTRA_MODULES to its own module list) pulls in the
+      # repo-local module with ORBit's custom drivers/processors.
       - name: Build vessel
         working-directory: zmk-config
         run: |
           west build -s zmk/app -b xiao_ble -- \
             -DSHIELD=vessel \
-            -DZMK_CONFIG="$GITHUB_WORKSPACE/zmk-config/config"
+            -DZMK_CONFIG="$GITHUB_WORKSPACE/zmk-config/config" \
+            -DZMK_EXTRA_MODULES="$GITHUB_WORKSPACE/zmk-config/modules/orbit"
 
       - name: Upload firmware (zmk.uf2)
         uses: actions/upload-artifact@v4

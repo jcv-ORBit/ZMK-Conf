@@ -1,0 +1,5 @@
+if(CONFIG_ORBIT_INPUT_PROCESSOR_CHORD)
+  zephyr_library()
+  zephyr_library_include_directories(include)
+  zephyr_library_sources(src/input_processor_chord.c)
+endif()

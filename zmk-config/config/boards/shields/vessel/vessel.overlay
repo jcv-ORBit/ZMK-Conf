@@ -60,6 +60,21 @@
         compatible = "zmk,input-listener";
         device = <&trackball>;
     };
+
+    /* Work item 4: slider chord (repo-local module modules/orbit). Sits ahead
+     * of cap_zone_behaviors in cap_listener's chain (vessel.keymap): a lone
+     * CS7 or CS8 tap passes through (delayed <= timeout-ms); both pads within
+     * the window are rewritten to one KEY_MUTE press/release pair. */
+    slider_chord: slider_chord {
+        compatible = "orbit,input-processor-chord";
+        #input-processor-cells = <0>;
+        codes = <INPUT_BTN_6 INPUT_BTN_7>;      /* CS7, CS8 */
+        chord-code = <INPUT_KEY_MUTE>;
+        /* Chord window = worst-case single-tap latency. Tuning point: raise
+         * if simultaneous two-finger presses register as volume steps, lower
+         * if slider taps feel laggy. See HARDWARE_VALIDATION.md §5. */
+        timeout-ms = <75>;
+    };
 };
 
 /* --- PMW3610 on SPI (3-wire) — needs the badjeff module in west.yml --- */

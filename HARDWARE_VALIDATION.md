@@ -106,11 +106,35 @@ halves raw counts vs. bare bench (spec §3).
 - **Expected:** each zone fires once, no double-fires at boundaries. If zones
   bleed together, revisit §3's sensitivity options (sleeve fitted).
 
+## 5. Slider v1: CS7/CS8 taps + both = mute  _(PR item 4)_
+Spec §3: "v1: half-strip taps (vol/scroll, both=mute)". The firmware picks
+**volume** (item 9 later gives the crown true wheel scroll and says "slider
+owns volume"). Chording is done by the repo-local `orbit,input-processor-chord`
+module (`zmk-config/modules/orbit/`) — ZMK combos only work on kscan positions,
+not input events, so this is custom code: **bench-test it deliberately.**
+- [ ] **Observe:** tap CS7, tap CS8. **Expected:** volume down / volume up, one
+  step per tap, arriving up to ~75 ms after the tap (the chord window).
+- [ ] **Observe:** hold CS7 or CS8. **Expected:** most hosts auto-repeat a held
+  volume key. If yours doesn't, repeat-on-hold needs the cap12xx `repeat`
+  property (see §3) — capture behavior here first.
+- [ ] **Observe:** press both pads together (flat two-finger tap). **Expected:**
+  one **mute** toggle; NO volume step before it. Release and repeat — unmute,
+  again no stray volume steps.
+- [ ] **Observe:** deliberately sloppy chords (one finger lands ~50–100 ms
+  after the other). **Expected:** inside the window = mute; outside = two
+  volume steps. If real two-finger taps often land as volume steps, widen the
+  window; if single taps feel laggy, narrow it.
+- **Tune:** `timeout-ms` on the `slider_chord` node in `vessel.overlay`
+  (default 75). It is both the chord window and the worst-case single-tap
+  latency — one knob, two effects.
+- [ ] **Observe:** rapid alternating taps CS7-CS8-CS7… **Expected:** clean
+  volume steps, no missed or stuck events. (The processor's pathological-case
+  guarantee: rare degenerate sequences may *miss* a chord, but can never leave
+  a key stuck.)
+
 <!--
 Items below are placeholders for the subsystems each numbered work-package PR
 introduces. Each PR appends its concrete tuning points and pass criteria here.
-
-## 5. Slider (CS7/CS8)                                — PR #4 (item 4)
 ## 6. DRV2605L haptics: LRA auto-cal + per-zone feel  — PR #5 (item 5)
 ## 7. SK6812 glow chain: order, color, duty           — PR #6 (item 6)
 ## 8. Wake: IMU wake-on-motion + CAP proximity        — PR #7 (item 7)

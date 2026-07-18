@@ -1,0 +1,13 @@
+# ORBit repo-local Zephyr module. Home for the small pieces of custom firmware
+# the spec's work package needs and ZMK doesn't ship: the slider chord input
+# processor (item 4) and, later, the DRV2605L haptics driver (item 5).
+
+config ORBIT_INPUT_PROCESSOR_CHORD
+	bool "ORBit two-pad chord input processor"
+	default y
+	depends on DT_HAS_ORBIT_INPUT_PROCESSOR_CHORD_ENABLED
+	depends on INPUT
+	help
+	  Input processor that turns a near-simultaneous touch of two EV_KEY
+	  codes into a single third code (spec: CS7+CS8 slider chord = mute),
+	  while single touches pass through with a short detection delay.

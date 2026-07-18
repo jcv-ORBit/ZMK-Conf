@@ -1,0 +1,39 @@
+# Copyright (c) 2026 ORBit
+# SPDX-License-Identifier: MIT
+
+description: |
+  Input processor that chords two EV_KEY codes into a third.
+
+  A press of either code is held back for timeout-ms. If the other code is
+  pressed inside that window, the pair is delivered as a single press of
+  chord-code (released when the first of the two fingers lifts). Otherwise
+  the original press is delivered, delayed by at most timeout-ms.
+
+  Must be placed BEFORE the zmk,input-processor-behaviors entry in the
+  listener's input-processors list, so the behaviors map sees the rewritten
+  codes.
+
+compatible: "orbit,input-processor-chord"
+
+properties:
+  "#input-processor-cells":
+    type: int
+    required: true
+    const: 0
+  # Read by ZMK's input-listener entry macro on every processor node.
+  track-remainders:
+    type: boolean
+  codes:
+    type: array
+    required: true
+    description: Exactly two EV_KEY codes that form the chord.
+  chord-code:
+    type: int
+    required: true
+    description: EV_KEY code delivered when both codes are pressed together.
+  timeout-ms:
+    type: int
+    default: 75
+    description: |
+      Chord detection window in ms. Also the worst-case added latency on a
+      single (non-chord) tap of either code.

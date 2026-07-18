@@ -19,7 +19,10 @@
     cap_listener: cap_listener {
         compatible = "zmk,input-listener";
         device = <&cap1188>;
-        input-processors = <&cap_zone_behaviors>;
+        /* Order matters: the chord processor (vessel.overlay) rewrites the
+         * CS7/CS8 stream first; the behaviors map then sees either the
+         * individual codes or the synthesized KEY_MUTE. */
+        input-processors = <&slider_chord>, <&cap_zone_behaviors>;
     };
 
     cap_zone_behaviors: cap_zone_behaviors {
@@ -27,17 +30,23 @@
         #input-processor-cells = <0>;
         type = <INPUT_EV_KEY>;
         codes = <INPUT_BTN_0 INPUT_BTN_1 INPUT_BTN_2 INPUT_BTN_3
-                 INPUT_BTN_4 INPUT_BTN_5 INPUT_BTN_6 INPUT_BTN_7>;
+                 INPUT_BTN_4 INPUT_BTN_5 INPUT_BTN_6 INPUT_BTN_7
+                 INPUT_KEY_MUTE>;
         /* CS1->L, CS2->R, CS3->M click; CS4->back, CS5->forward (browser
          * back/fwd = mouse buttons 4/5). CS6 holds C_VOICE_COMMAND (HID
          * consumer 0xCF, the mic/dictation key on modern keyboards): macOS
          * maps it to dictation, Windows 11 to voice typing, iOS/Android to
          * the assistant. TUNING POINT: if the host doesn't honor 0xCF, swap
          * for its dictation chord instead — e.g. &kp LG(H) (Win+H) on
-         * Windows 10 — see HARDWARE_VALIDATION.md §4. CS7/CS8 pending item 4. */
+         * Windows 10 — see HARDWARE_VALIDATION.md §4.
+         *
+         * Slider v1 (item 4): CS7 vol-down, CS8 vol-up — spec offers
+         * scroll-or-volume and item 9 settles it ("slider owns volume" once
+         * the crown takes wheel scroll). KEY_MUTE never comes from the chip:
+         * it's synthesized by &slider_chord when both pads press together. */
         bindings = <&mkp LCLK>, <&mkp RCLK>, <&mkp MCLK>,
                    <&mkp MB4>, <&mkp MB5>, <&kp C_VOICE_COMMAND>,
-                   <&none>, <&none>;
+                   <&kp C_VOL_DN>, <&kp C_VOL_UP>, <&kp C_MUTE>;
     };
 
     keymap {
