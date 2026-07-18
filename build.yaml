@@ -1,9 +1,0 @@
-# GitHub Actions build matrix. The Vessel is a shield on the XIAO nRF52840.
----
-include:
-  - board: seeeduino_xiao_ble
-    shield: vessel
-  # Optional 2.4 GHz / USB dongle receiver (advanced — a 2nd XIAO as a BLE
-  # central over USB). Uncomment once you set up a dongle shield.
-  # - board: seeeduino_xiao_ble
-  #   shield: vessel_dongle
