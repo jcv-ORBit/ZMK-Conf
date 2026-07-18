@@ -81,11 +81,35 @@ halves raw counts vs. bare bench (spec §3).
   item 5) DRV2605L @0x5A share `&i2c1` (D4/D5). **Expected:** both enumerate; no
   bus lockups.
 
+## 4. Touch zone mapping CS4/CS5/CS6  _(PR item 3)_
+- [ ] **Observe:** in a web browser, tap CS4, then CS5.
+- **Expected:** CS4 = browser **back**, CS5 = browser **forward** (they send
+  mouse buttons 4/5, the standard back/fwd buttons — most OSes/browsers honor
+  them out of the box; some Linux setups need `imwheel` or equivalent).
+- **Tune:** `bindings` indices 3/4 in `cap_zone_behaviors`
+  (`zmk-config/config/vessel.keymap`).
+- [ ] **Observe:** hold CS6, speak, release. **Expected:** the host's
+  dictation/voice input engages while held. CS6 holds **`C_VOICE_COMMAND`**
+  (HID consumer 0xCF — the mic key on modern keyboards) for as long as the
+  finger stays on the zone:
+  - **macOS:** 0xCF is the dictation key. Default dictation is *tap to start,
+    tap again to stop* — a quick tap of CS6 toggles it. For true
+    press-and-hold PTT, hold-to-talk dictation tools (or newer macOS
+    hold-the-mic-key behavior) use the hold directly.
+  - **Windows 11:** 0xCF opens voice typing. **Windows 10 / not honored:**
+    swap the binding for the explicit chord `&kp LG(H)` (Win+H).
+  - **iOS/Android:** 0xCF summons the assistant (hold = hold-to-talk).
+- **Tune:** `bindings` index 5 in `cap_zone_behaviors`. This is inherently
+  **per-host** — pick the binding for your primary OS; per-profile PTT
+  variants would need a layer/profile-conditional setup (note for item 8).
+- [ ] **Observe:** brush a finger across adjacent zones (CS4→CS5, CS1→CS3).
+- **Expected:** each zone fires once, no double-fires at boundaries. If zones
+  bleed together, revisit §3's sensitivity options (sleeve fitted).
+
 <!--
 Items below are placeholders for the subsystems each numbered work-package PR
 introduces. Each PR appends its concrete tuning points and pass criteria here.
 
-## 4. Touch zone mapping (CS1..CS6)                   — PR #3 (item 3)
 ## 5. Slider (CS7/CS8)                                — PR #4 (item 4)
 ## 6. DRV2605L haptics: LRA auto-cal + per-zone feel  — PR #5 (item 5)
 ## 7. SK6812 glow chain: order, color, duty           — PR #6 (item 6)

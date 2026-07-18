@@ -5,15 +5,17 @@
 #include <zephyr/dt-bindings/input/input-event-codes.h>   /* INPUT_EV_KEY, INPUT_BTN_* */
 
 / {
-    /* Work item 2: CAP1188 touch -> ZMK behaviors.
+    /* Work items 2+3: CAP1188 touch -> ZMK behaviors.
      * The CAP1188 (vessel.overlay, on &i2c1) emits one INPUT_EV_KEY event per
      * channel. This listener runs those events through a behaviors processor
      * that invokes one ZMK behavior per channel code. This is the spec §4.2
      * PRIMARY path (stock driver + listener shim) — no custom module.
      *
-     * Item 2 proves the pipeline end-to-end with the three click zones
-     * (CS1/CS2/CS3). CS4/CS5/CS6 (back/fwd/PTT — item 3) and CS7/CS8 (slider —
-     * item 4) are intentionally &none here and get their behaviors in later PRs. */
+     * Zone map (spec §3): CS1 L-click, CS2 R-click, CS3 M-click, CS4 back,
+     * CS5 forward, CS6 PTT-as-dictation-hotkey-hold. The processor presses a
+     * binding on touch and releases it on lift, so CS6 holds the dictation key
+     * for as long as the finger stays on the zone — PTT semantics for free.
+     * CS7/CS8 (slider — item 4) stay &none until that PR. */
     cap_listener: cap_listener {
         compatible = "zmk,input-listener";
         device = <&cap1188>;
@@ -26,9 +28,16 @@
         type = <INPUT_EV_KEY>;
         codes = <INPUT_BTN_0 INPUT_BTN_1 INPUT_BTN_2 INPUT_BTN_3
                  INPUT_BTN_4 INPUT_BTN_5 INPUT_BTN_6 INPUT_BTN_7>;
-        /* CS1->L, CS2->R, CS3->M click. CS4..CS8 pending items 3/4. */
+        /* CS1->L, CS2->R, CS3->M click; CS4->back, CS5->forward (browser
+         * back/fwd = mouse buttons 4/5). CS6 holds C_VOICE_COMMAND (HID
+         * consumer 0xCF, the mic/dictation key on modern keyboards): macOS
+         * maps it to dictation, Windows 11 to voice typing, iOS/Android to
+         * the assistant. TUNING POINT: if the host doesn't honor 0xCF, swap
+         * for its dictation chord instead — e.g. &kp LG(H) (Win+H) on
+         * Windows 10 — see HARDWARE_VALIDATION.md §4. CS7/CS8 pending item 4. */
         bindings = <&mkp LCLK>, <&mkp RCLK>, <&mkp MCLK>,
-                   <&none>, <&none>, <&none>, <&none>, <&none>;
+                   <&mkp MB4>, <&mkp MB5>, <&kp C_VOICE_COMMAND>,
+                   <&none>, <&none>;
     };
 
     keymap {
