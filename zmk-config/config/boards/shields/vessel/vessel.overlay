@@ -83,7 +83,12 @@
     };
 };
 
-&spi1 {
+/* PMW3610 lives on SPIM3, NOT SPIM1. On the nRF52840, spi1 (SPIM1) and i2c1
+ * (TWIM1) are the SAME peripheral instance (both at 0x40004000) and are mutually
+ * exclusive. The CAP1188 touch bus must be i2c1 (the XIAO D4/D5 controller), so
+ * the trackball SPI moves to spi3 (SPIM3 @0x4002f000, instance 3, no TWI sibling).
+ * Pins are unchanged — pinctrl (spi_tb_default) routes the same D8/D9/D10. */
+&spi3 {
     compatible = "nordic,nrf-spim";
     status = "okay";
     pinctrl-0 = <&spi_tb_default>;

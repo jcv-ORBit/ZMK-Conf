@@ -40,6 +40,10 @@ that introduces the tunable.
 - **Expected:** comfortable desktop tracking; no skipping.
 - **Tune:** `cpi = <600>;` on the same node (datasheet Z = 2.2–2.6 mm; lens ref
   plane sits at Z = 2.4 to the ball — mechanical, not firmware).
+- **Note:** the PMW3610 runs on **SPIM3** (not SPIM1) — SPIM1 and the CAP1188's
+  I²C (TWIM1) are the same nRF52840 instance and can't coexist. Same pins
+  (D8/D9/D10); if the pointer is dead after the item-2 change, suspect the SPI3
+  move first.
 
 ## 2. Scroll ring (hall quadrature) step feel  _(seed)_
 - [ ] **Observe:** spin the crown; count detents vs. scroll/volume steps.
