@@ -75,6 +75,25 @@
          * if slider taps feel laggy. See HARDWARE_VALIDATION.md §5. */
         timeout-ms = <75>;
     };
+
+    /* Work item 5: per-zone haptic identity (spec §3): sharp click L/R,
+     * softer click M, soft tick back/fwd, double-tick PTT, micro-tick
+     * slider. Effect IDs = TI DRV2605L ROM library; all tuning points, see
+     * HARDWARE_VALIDATION.md §6. Fires on raw touch (before the chord
+     * window), keeping touch->haptic < 10 ms; dedup-ms suppresses the
+     * second buzz the chord processor's re-injection would cause. */
+    haptic_feedback {
+        compatible = "orbit,haptic-feedback";
+        haptics = <&drv2605>;
+        input-dev = <&cap1188>;
+        codes = <INPUT_BTN_0 INPUT_BTN_1 INPUT_BTN_2 INPUT_BTN_3
+                 INPUT_BTN_4 INPUT_BTN_5 INPUT_BTN_6 INPUT_BTN_7>;
+        /*        CS1 CS2 CS3 CS4 CS5 CS6 CS7 CS8 */
+        effects = <4   4   5   26  26  10  24  24>;
+        dedup-ms = <90>;          /* keep just above slider_chord timeout-ms */
+        boot-cal-delay-ms = <800>;
+        /* lra-drive-time = <24>;    set once LRA resonant freq is known */
+    };
 };
 
 /* --- PMW3610 on SPI (3-wire) — needs the badjeff module in west.yml --- */
@@ -136,6 +155,22 @@
  */
 &i2c1 {
     status = "okay";
+
+    /* DRV2605L haptic driver + LRA (work item 5). Stock Zephyr ti,drv2605
+     * haptics driver; the orbit,haptic-feedback node below adds the per-zone
+     * effect map and the boot auto-cal/persist logic the driver lacks.
+     * EN is hardwired high and IN/TRIG unused (I2C-only, spec §2). */
+    drv2605: drv2605@5a {
+        compatible = "ti,drv2605";
+        reg = <0x5a>;
+        actuator-mode = "LRA";
+        /* TUNING POINT: set from the actual LRA datasheet before trusting
+         * haptic strength. Defaults here suit a generic 10x4 mm LRA
+         * (~1.8 Vrms rated, ~2.5 V overdrive clamp); the binding's own
+         * defaults (3.2 V) could overdrive a small motor. */
+        vib-rated-mv = <1800>;
+        vib-overdrive-mv = <2500>;
+    };
 
     cap1188: cap1188@29 {
         compatible = "microchip,cap12xx";
