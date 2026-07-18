@@ -58,15 +58,19 @@ struct chord_config {
     uint16_t code_b;
     uint16_t chord_code;
     uint32_t timeout_ms;
+    uint32_t long_hold_ms;  /* 0 = long-hold disabled */
+    uint16_t long_hold_code;
 };
 
 struct chord_data {
     const struct chord_config *cfg;
     const struct device *src; /* input device we shadow; learned from events */
     struct k_work_delayable timeout_work;
+    struct k_work_delayable long_work; /* item 8: lone-pad long-hold */
     struct k_spinlock lock;
     enum chord_state state;
     uint16_t pending_code;      /* the held-back code while ST_PENDING */
+    int long_owner;             /* code idx being long-held, -1 = none */
     uint8_t pass_cnt[2];        /* injected events in flight, per code index */
     bool deferred_release[2];   /* genuine release overtook an injected press */
     bool delivered_down[2];     /* a press was delivered; its release must pass */
@@ -86,6 +90,53 @@ static void chord_inject(struct chord_data *data, uint16_t code, int32_t value) 
         data->pass_cnt[code_idx(data->cfg, code)]--;
         k_spin_unlock(&data->lock, key);
         LOG_ERR("dropped injected event %u/%d (%d)", code, value, ret);
+    }
+}
+
+/* Item 8: a lone pad held past long-hold-ms injects long-hold-code (mapped
+ * to &bt BT_CLR in the keymap). The code is outside {code_a, code_b}, so it
+ * sails through this processor's filter untouched — no pass counters. */
+static void chord_long_hold(struct k_work *work) {
+    struct k_work_delayable *dwork = k_work_delayable_from_work(work);
+    struct chord_data *data = CONTAINER_OF(dwork, struct chord_data, long_work);
+    bool fire = false;
+
+    k_spinlock_key_t key = k_spin_lock(&data->lock);
+    if (data->long_owner >= 0 && data->delivered_down[data->long_owner] &&
+        !data->delivered_down[1 - data->long_owner] && data->state == ST_IDLE) {
+        fire = true;
+    }
+    data->long_owner = -1;
+    k_spin_unlock(&data->lock, key);
+
+    if (fire && data->src != NULL) {
+        input_report_key(data->src, data->cfg->long_hold_code, 1, true, K_NO_WAIT);
+        input_report_key(data->src, data->cfg->long_hold_code, 0, true, K_NO_WAIT);
+    }
+}
+
+/* Call under the lock. Arms/cancels the long-hold timer as pads come and go:
+ * armed only while exactly one pad is delivered-down. */
+static void chord_long_hold_update(struct chord_data *data) {
+    const struct chord_config *cfg = data->cfg;
+
+    if (cfg->long_hold_ms == 0) {
+        return;
+    }
+
+    bool a = data->delivered_down[0];
+    bool b = data->delivered_down[1];
+
+    if (a != b && data->state == ST_IDLE) { /* exactly one pad down */
+        int owner = a ? 0 : 1;
+
+        if (data->long_owner != owner) {
+            data->long_owner = owner;
+            k_work_reschedule(&data->long_work, K_MSEC(cfg->long_hold_ms));
+        }
+    } else if (data->long_owner >= 0) {
+        data->long_owner = -1;
+        k_work_cancel_delayable(&data->long_work);
     }
 }
 
@@ -136,6 +187,7 @@ static int chord_handle_event(const struct device *dev, struct input_event *even
             /* One of our own injected presses: wave it through. */
             data->pass_cnt[i]--;
             data->delivered_down[i] = true;
+            chord_long_hold_update(data);
             if (data->deferred_release[i]) {
                 /* Its genuine release already came and went; replay it. */
                 data->deferred_release[i] = false;
@@ -150,6 +202,7 @@ static int chord_handle_event(const struct device *dev, struct input_event *even
                     /* Other pad already delivered as a single: too late to
                      * chord, treat this one independently too. */
                     data->delivered_down[i] = true;
+                    chord_long_hold_update(data);
                     verdict = ZMK_INPUT_PROC_CONTINUE;
                 } else {
                     data->state = ST_PENDING;
@@ -202,6 +255,7 @@ static int chord_handle_event(const struct device *dev, struct input_event *even
         } else if (data->delivered_down[i]) {
             /* Release matching a delivered press (genuine or injected). */
             data->delivered_down[i] = false;
+            chord_long_hold_update(data);
             if (data->pass_cnt[i] > 0) {
                 data->pass_cnt[i]--; /* it was one of our injected releases */
             }
@@ -236,7 +290,9 @@ static int chord_init(const struct device *dev) {
     struct chord_data *data = dev->data;
 
     k_work_init_delayable(&data->timeout_work, chord_timeout);
+    k_work_init_delayable(&data->long_work, chord_long_hold);
     data->state = ST_IDLE;
+    data->long_owner = -1;
     return 0;
 }
 
@@ -248,6 +304,8 @@ static int chord_init(const struct device *dev) {
         .code_b = DT_INST_PROP_BY_IDX(n, codes, 1),                                                \
         .chord_code = DT_INST_PROP(n, chord_code),                                                 \
         .timeout_ms = DT_INST_PROP(n, timeout_ms),                                                 \
+        .long_hold_ms = DT_INST_PROP(n, long_hold_ms),                                             \
+        .long_hold_code = DT_INST_PROP(n, long_hold_code),                                         \
     };                                                                                             \
     static struct chord_data chord_data_##n = {                                                    \
         .cfg = &chord_config_##n,                                                                  \

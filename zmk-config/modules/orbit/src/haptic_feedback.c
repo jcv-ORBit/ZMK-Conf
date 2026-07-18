@@ -193,7 +193,28 @@ static void hf_cal_work_fn(struct k_work *work) {
     }
 }
 
-/* --- per-press effect playback (input dispatch context) ----------------- */
+/* --- effect playback ----------------------------------------------------- */
+
+static void hf_play(uint16_t effect) {
+    struct drv2605_rom_data rom = {
+        .trigger = DRV2605_MODE_INTERNAL_TRIGGER,
+        .library = DRV2605_LIBRARY_LRA,
+        .seq_regs = {(uint8_t)effect, 0},
+    };
+    const union drv2605_config_data cfg = {.rom_data = &rom};
+
+    if (drv2605_haptic_config(hf_haptics, DRV2605_HAPTICS_SOURCE_ROM, &cfg) == 0) {
+        haptics_start_output(hf_haptics);
+    }
+}
+
+void orbit_haptic_play(uint16_t effect) {
+    if (atomic_get(&hf_data.ready)) {
+        hf_play(effect);
+    }
+}
+
+/* --- per-press effects (input dispatch context) -------------------------- */
 
 static void hf_input_cb(struct input_event *evt, void *user_data) {
     ARG_UNUSED(user_data);
@@ -217,16 +238,7 @@ static void hf_input_cb(struct input_event *evt, void *user_data) {
         }
         hf_data.last_fire[i] = now;
 
-        struct drv2605_rom_data rom = {
-            .trigger = DRV2605_MODE_INTERNAL_TRIGGER,
-            .library = DRV2605_LIBRARY_LRA,
-            .seq_regs = {(uint8_t)hf_effects[i], 0},
-        };
-        const union drv2605_config_data cfg = {.rom_data = &rom};
-
-        if (drv2605_haptic_config(hf_haptics, DRV2605_HAPTICS_SOURCE_ROM, &cfg) == 0) {
-            haptics_start_output(hf_haptics);
-        }
+        hf_play(hf_effects[i]);
         return;
     }
 }

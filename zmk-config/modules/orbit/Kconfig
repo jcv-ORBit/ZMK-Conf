@@ -46,3 +46,12 @@ config ORBIT_WAKE
 	  Arms LSM6DS3TR-C wake-on-motion and CAP1188 standby proximity as
 	  System OFF wake pins on the ZMK sleep transition, and triggers the
 	  boot glow breathe that masks BLE reconnect (spec item 7).
+
+config ORBIT_PROFILE_INDICATOR
+	bool "ORBit BLE profile step feedback"
+	default y
+	depends on ZMK_BLE
+	depends on ORBIT_GLOW || ORBIT_HAPTIC_FEEDBACK
+	help
+	  Haptic tick and LED index blink on every active-profile change
+	  (spec item 8: "haptic tick per step, LED0-4 blink index").

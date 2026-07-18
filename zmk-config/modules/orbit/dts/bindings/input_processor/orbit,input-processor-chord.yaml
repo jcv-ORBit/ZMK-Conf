@@ -37,3 +37,15 @@ properties:
     description: |
       Chord detection window in ms. Also the worst-case added latency on a
       single (non-chord) tap of either code.
+  long-hold-ms:
+    type: int
+    default: 0
+    description: |
+      If nonzero, holding ONE of the two codes alone for this long injects
+      long-hold-code as a press+release (spec item 8: slider long-hold =
+      BT_CLR). Canceled if the other pad joins (chord) or the pad lifts.
+      Keep well above any normal hold-gesture time.
+  long-hold-code:
+    type: int
+    default: 0
+    description: EV_KEY code injected on long-hold (unfiltered by this processor).

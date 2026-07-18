@@ -67,6 +67,8 @@ static struct {
     struct k_work_delayable render_work;
     int64_t flash_until[GLOW_LEN];
     int64_t breathe_until;
+    int64_t show_until;  /* item 8: profile index display */
+    int show_led;
     atomic_t scene; /* enum zmk_activity_state */
 } glow;
 
@@ -102,6 +104,17 @@ static void glow_render(void) {
     }
 
     if (atomic_get(&glow.scene) == ZMK_ACTIVITY_ACTIVE) {
+        if (now < glow.show_until) {
+            /* Profile index display: the indexed LED alone, bright. */
+            for (int i = 0; i < GLOW_CHAIN; i++) {
+                glow_pixel(&px[i], 0);
+            }
+            if (glow.show_led >= 0 && glow.show_led < GLOW_CHAIN) {
+                glow_pixel(&px[glow.show_led], GLOW_FLASH);
+            }
+            busy = true;
+        }
+
         for (int i = 0; i < GLOW_LEN; i++) {
             if (now < glow.flash_until[i]) {
                 glow_pixel(&px[glow_leds[i]], GLOW_FLASH);
@@ -131,6 +144,15 @@ void orbit_glow_breathe(uint32_t duration_ms) {
         return;
     }
     glow.breathe_until = k_uptime_get() + duration_ms;
+    k_work_schedule(&glow.render_work, K_NO_WAIT);
+}
+
+void orbit_glow_show_index(uint8_t index, uint32_t duration_ms) {
+    if (atomic_get(&glow.scene) != ZMK_ACTIVITY_ACTIVE || index >= GLOW_CHAIN) {
+        return;
+    }
+    glow.show_led = index;
+    glow.show_until = k_uptime_get() + duration_ms;
     k_work_schedule(&glow.render_work, K_NO_WAIT);
 }
 

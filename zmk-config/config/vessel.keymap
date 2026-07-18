@@ -5,6 +5,28 @@
 #include <zephyr/dt-bindings/input/input-event-codes.h>   /* INPUT_EV_KEY, INPUT_BTN_* */
 
 / {
+    /* Work item 8: profile-switch gesture pieces.
+     * - sht: hold-tap on the slider pads. Quick tap = volume step (item 4);
+     *   holding ~300 ms = momentary "profile" layer, where the crown spins
+     *   through BLE profiles instead of volume.
+     * - rot_bt: crown rotation -> next/previous BLE profile. Feedback (haptic
+     *   tick + LED index blink) comes from the module's profile listener.
+     * ZMK ships 5 BLE profiles by default = the spec's 5. */
+    behaviors {
+        sht: slider_hold_tap {
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            flavor = "balanced";
+            tapping-term-ms = <300>;
+            bindings = <&mo>, <&kp>;
+        };
+        rot_bt: rot_bt {
+            compatible = "zmk,behavior-sensor-rotate";
+            #sensor-binding-cells = <0>;
+            bindings = <&bt BT_NXT>, <&bt BT_PRV>;
+        };
+    };
+
     /* Work items 2+3: CAP1188 touch -> ZMK behaviors.
      * The CAP1188 (vessel.overlay, on &i2c1) emits one INPUT_EV_KEY event per
      * channel. This listener runs those events through a behaviors processor
@@ -31,7 +53,7 @@
         type = <INPUT_EV_KEY>;
         codes = <INPUT_BTN_0 INPUT_BTN_1 INPUT_BTN_2 INPUT_BTN_3
                  INPUT_BTN_4 INPUT_BTN_5 INPUT_BTN_6 INPUT_BTN_7
-                 INPUT_KEY_MUTE>;
+                 INPUT_KEY_MUTE INPUT_KEY_BLUETOOTH>;
         /* CS1->L, CS2->R, CS3->M click; CS4->back, CS5->forward (browser
          * back/fwd = mouse buttons 4/5). CS6 holds C_VOICE_COMMAND (HID
          * consumer 0xCF, the mic/dictation key on modern keyboards): macOS
@@ -40,13 +62,16 @@
          * for its dictation chord instead — e.g. &kp LG(H) (Win+H) on
          * Windows 10 — see HARDWARE_VALIDATION.md §4.
          *
-         * Slider v1 (item 4): CS7 vol-down, CS8 vol-up — spec offers
-         * scroll-or-volume and item 9 settles it ("slider owns volume" once
-         * the crown takes wheel scroll). KEY_MUTE never comes from the chip:
-         * it's synthesized by &slider_chord when both pads press together. */
+         * Slider v1 (item 4) + item 8: CS7/CS8 are hold-taps — tap = volume
+         * step (item 9 confirms the slider owns volume), hold = the profile
+         * layer for crown switching. KEY_MUTE and KEY_BLUETOOTH never come
+         * from the chip: &slider_chord synthesizes MUTE on a two-pad chord
+         * and BLUETOOTH on a lone-pad 5 s long-hold (-> &bt BT_CLR, the
+         * spec's "long-hold = BT_CLR"). */
         bindings = <&mkp LCLK>, <&mkp RCLK>, <&mkp MCLK>,
                    <&mkp MB4>, <&mkp MB5>, <&kp C_VOICE_COMMAND>,
-                   <&kp C_VOL_DN>, <&kp C_VOL_UP>, <&kp C_MUTE>;
+                   <&sht 1 C_VOL_DN>, <&sht 1 C_VOL_UP>,
+                   <&kp C_MUTE>, <&bt BT_CLR>;
     };
 
     keymap {
@@ -65,6 +90,16 @@
              * For mouse-wheel instead, see ZMK pointing/scroll docs and swap
              * this for a scroll behavior. */
             sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN>;
+        };
+
+        profile {
+            /* Item 8: active while a slider pad is held (&sht). The crown
+             * steps BLE profiles; everything else keeps its base behavior
+             * (zone bindings live in the input processor, not this layer). */
+            bindings = <
+                &none
+            >;
+            sensor-bindings = <&rot_bt>;
         };
     };
 };

@@ -90,6 +90,12 @@
          * if simultaneous two-finger presses register as volume steps, lower
          * if slider taps feel laggy. See HARDWARE_VALIDATION.md §5. */
         timeout-ms = <75>;
+        /* Item 8: lone pad held 5 s -> KEY_BLUETOOTH -> &bt BT_CLR (clears
+         * the active profile's bond!). Deliberately far above the ~300 ms
+         * profile-layer hold so crown gestures can't trip it by accident;
+         * see HARDWARE_VALIDATION.md §9 before shortening. */
+        long-hold-ms = <5000>;
+        long-hold-code = <INPUT_KEY_BLUETOOTH>;
     };
 
     /* Work item 5: per-zone haptic identity (spec §3): sharp click L/R,

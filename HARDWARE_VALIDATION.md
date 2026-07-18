@@ -227,10 +227,36 @@ section is the tuning pass.
 - [ ] **Observe:** wake works with the device on USB too (System OFF + USB
   is a corner: charger keeps the rail up — confirm no boot loop).
 
+## 9. BLE profiles + gesture switch  _(PR item 8)_
+Gesture: **hold a slider pad (~300 ms) + spin the crown** = step through the
+5 BLE profiles; each step ticks the LRA and blinks the profile's index on
+LED0–4. **Hold one pad alone for 5 s = `BT_CLR`** (clears the ACTIVE
+profile's bond — deliberate friction, see below).
+- [ ] **Observe:** pair two hosts on profiles 0/1. Hold CS7 (or CS8), spin
+  the crown one detent. **Expected:** haptic tick, one LED of LED0–4 lights
+  ~0.9 s showing the new index, HID output moves to the other host within a
+  second or two. Spin back — returns.
+- [ ] **Observe:** quick slider taps still do volume; the hold must engage
+  before the crown affects profiles (base layer keeps the crown on volume).
+  **Tune:** `tapping-term-ms` on the `sht` hold-tap in `vessel.keymap`
+  (300): shorter = profile layer engages faster but quick volume taps risk
+  reading as holds.
+- [ ] **Observe:** hold one pad 5 s without spinning. **Expected:** at 5 s
+  the active profile's bond clears (host disconnects; profile is ready to
+  re-pair). The 5 s is `long-hold-ms` on `slider_chord`
+  (`vessel.overlay`) — it is intentionally far above gesture time; if it
+  ever fires during normal profile switching, RAISE it (a surprise BT_CLR
+  is the worst UX failure this device can produce).
+  - Known interaction: the long-hold timer does NOT know about crown spins;
+    a 5 s+ hold *while* switching will still fire BT_CLR at 5 s. Bench-check
+    whether real usage ever holds that long mid-gesture.
+- [ ] **Observe:** profile blinks also fire when the profile changes by any
+  other path (e.g. `&bt` bindings added later, or a host-initiated switch) —
+  the indicator listens to ZMK's profile event, not the gesture.
+
 <!--
 Items below are placeholders for the subsystems each numbered work-package PR
 introduces. Each PR appends its concrete tuning points and pass criteria here.
-## 9. BLE profiles + gesture switch                   — PR #8 (item 8)
 ## 10. Crown wheel scroll                             — PR #9 (item 9)
 ## 11. Manufacturing test mode                        — spec §6
 ## 12. Power budget                                   — DoD
