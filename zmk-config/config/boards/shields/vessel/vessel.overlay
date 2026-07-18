@@ -15,10 +15,25 @@
  * compiled. (Per the badjeff driver README.) */
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 #include <zephyr/dt-bindings/led/led.h>
+#include <zephyr/dt-bindings/i2c/i2c.h>
+#include <zephyr/dt-bindings/gpio/nordic-nrf-gpio.h>
 
 / {
     chosen {
         zmk,kscan = &kscan0;
+    };
+
+    /* Work item 7: the onboard LSM6DS3TR-C's 3V3 rail hangs off P1.08 (this
+     * regulator node is replicated verbatim from the upstream
+     * xiao_ble_nrf52840_sense.dts — we build the plain xiao_ble target, which
+     * omits it). regulator-boot-on powers the IMU at boot; System OFF retains
+     * GPIO outputs, so it stays powered while watching for motion. */
+    lsm6ds3tr_c_en: lsm6ds3tr-c-en {
+        compatible = "regulator-fixed-sync", "regulator-fixed";
+        enable-gpios = <&gpio1 8 (NRF_GPIO_DRIVE_S0H1 | GPIO_ACTIVE_HIGH)>;
+        regulator-name = "LSM6DS3TR_C_EN";
+        regulator-boot-on;
+        startup-delay-us = <3000>;
     };
 
     /* v1 work item 1: D0/D1 are NOT buttons. In the cap-touch revision they are
@@ -177,6 +192,34 @@
         y-input-code = <INPUT_REL_Y>;
         /* Uncomment/adjust after the first test to fix direction: */
         /* swap-xy; invert-x; invert-y; */
+    };
+};
+
+/* --- Internal IMU bus + wake sources (work item 7) ---
+ * i2c0 = TWIM0, the XIAO's internal sensor bus (SDA P0.07 / SCL P0.27,
+ * pinctrl already in the base board files). Instance 0 was reserved for
+ * exactly this; SPI0 stays unused. The orbit,wake node sits at the IMU's
+ * address — wake-on-motion is raw register setup on the way into sleep, so
+ * no st,lsm6dsl sensor driver is enabled (zero cost while awake). */
+&i2c0 {
+    compatible = "nordic,nrf-twim";
+    status = "okay";
+    pinctrl-0 = <&i2c0_default>;
+    pinctrl-1 = <&i2c0_sleep>;
+    pinctrl-names = "default", "sleep";
+    clock-frequency = <I2C_BITRATE_FAST>;
+
+    wake: wake@6a {
+        compatible = "orbit,wake";
+        reg = <0x6a>;                 /* LSM6DS3TR-C */
+        imu-int-gpios = <&gpio0 11 GPIO_ACTIVE_HIGH>;  /* INT1, internal */
+        touch = <&cap1188>;
+        /* Wake tuning (HARDWARE_VALIDATION.md §8): threshold in 31.25 mg
+         * steps @2g; proximity tuned sleeve-on. */
+        wake-threshold = <2>;
+        proximity-sensitivity = <6>;
+        proximity-threshold = <4>;
+        breathe-ms = <2000>;
     };
 };
 
