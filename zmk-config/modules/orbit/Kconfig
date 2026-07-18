@@ -11,3 +11,16 @@ config ORBIT_INPUT_PROCESSOR_CHORD
 	  Input processor that turns a near-simultaneous touch of two EV_KEY
 	  codes into a single third code (spec: CS7+CS8 slider chord = mute),
 	  while single touches pass through with a short detection delay.
+
+config ORBIT_HAPTIC_FEEDBACK
+	bool "ORBit touch-zone haptic feedback (DRV2605L)"
+	default y
+	depends on DT_HAS_ORBIT_HAPTIC_FEEDBACK_ENABLED
+	depends on HAPTICS_DRV2605
+	depends on SETTINGS
+	depends on INPUT
+	help
+	  Plays a DRV2605 ROM library effect per touch-zone press, and runs the
+	  LRA auto-calibration once at boot, persisting the result via settings
+	  (spec item 5: init + auto-cal at boot with persist, per-zone effect,
+	  touch-to-haptic < 10 ms).

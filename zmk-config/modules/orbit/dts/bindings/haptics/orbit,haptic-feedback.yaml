@@ -1,0 +1,56 @@
+# Copyright (c) 2026 ORBit
+# SPDX-License-Identifier: MIT
+
+description: |
+  Glue between an input device's EV_KEY events and a DRV2605 haptic driver
+  (spec §4 item 5): fires one ROM-library effect per zone press, and owns the
+  LRA auto-calibration lifecycle (run once at boot, persist via settings,
+  restore on later boots, switch the chip to closed-loop on success).
+
+compatible: "orbit,haptic-feedback"
+
+properties:
+  haptics:
+    type: phandle
+    required: true
+    description: The ti,drv2605 device to play effects on.
+  input-dev:
+    type: phandle
+    required: true
+    description: Input device whose EV_KEY presses trigger effects.
+  codes:
+    type: array
+    required: true
+    description: EV_KEY codes to react to.
+  effects:
+    type: array
+    required: true
+    description: |
+      DRV2605 ROM library effect ID per code (same order/length as codes).
+      TI DRV2605L datasheet table 11.2 lists all 123; useful ones: 1 strong
+      click 100%, 4 sharp click 100%, 5 sharp click 60%, 7 soft bump 100%,
+      10 double click 100%, 24 sharp tick 1 100%, 26 sharp tick 3 60%.
+  dedup-ms:
+    type: int
+    default: 90
+    description: |
+      Minimum ms between effects for the SAME code. Must stay just above the
+      slider chord window (slider_chord timeout-ms): the chord processor
+      re-injects held-back CS7/CS8 presses, and without this window every
+      slider tap would buzz twice (raw press + injected replay).
+  boot-cal-delay-ms:
+    type: int
+    default: 800
+    description: |
+      Delay after boot before restoring/running LRA auto-calibration, giving
+      the settings backend and I2C bus time to come up. Auto-cal buzzes the
+      motor for up to ~1 s on the very first boot only.
+  lra-drive-time:
+    type: int
+    default: 255
+    description: |
+      Optional DRV2605 CONTROL1.DRIVE_TIME (0-31) written before auto-cal.
+      Should be the LRA half-period: DRIVE_TIME = ((1000/f_hz)/2 - 0.5)/0.1,
+      e.g. 24 for a 170 Hz LRA, 19 (chip default) fits ~205 Hz. Values > 31
+      (the 255 default) leave the chip default untouched. Set this once the
+      LRA's datasheet frequency is known.

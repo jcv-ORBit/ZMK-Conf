@@ -132,10 +132,44 @@ not input events, so this is custom code: **bench-test it deliberately.**
   guarantee: rare degenerate sequences may *miss* a chord, but can never leave
   a key stuck.)
 
+## 6. DRV2605L haptics: LRA auto-cal + per-zone feel  _(PR item 5)_
+Playback uses the stock Zephyr `ti,drv2605` driver; boot auto-cal/persist and
+the per-zone map are the repo-local `orbit,haptic-feedback` glue
+(`zmk-config/modules/orbit/src/haptic_feedback.c`).
+- [ ] **Before first power-up:** set `vib-rated-mv` / `vib-overdrive-mv` on the
+  `drv2605@5a` node (`vessel.overlay`) from the actual LRA datasheet. Shipped
+  defaults (1800/2500 mV) suit a generic Ø10×4 LRA; too high can cook a small
+  motor, too low feels mushy.
+- [ ] **Observe (first boot only):** ~0.8 s after power-on the LRA buzzes for
+  up to ~1 s — that's auto-cal. Log line `LRA auto-cal OK (...) persisted`.
+  **Expected:** later boots are silent with `LRA cal restored (...)` instead
+  (results persist in settings under `orbit/lracal`).
+  - If the log says `auto-cal FAILED` or `timed out`: check LRA wiring; the
+    firmware falls back to open-loop drive (weaker but functional). Consider
+    setting `lra-drive-time` on the `haptic_feedback` node = LRA half-period
+    (`((1000/f_hz)/2 − 0.5)/0.1`, e.g. 24 for 170 Hz) and re-running cal
+    (delete the setting or reflash with erased settings partition).
+- [ ] **Observe:** touch each zone. **Expected feel** (spec §3 identity —
+  effect IDs are the `effects` array on `haptic_feedback`, TI ROM library):
+  CS1/CS2 sharp click (4), CS3 lighter click (5), CS4/CS5 soft tick (26),
+  CS6 double-tick (10), CS7/CS8 micro-tick (24). Buzz should feel *subtle* —
+  identity guardrail, not phone-vibrate.
+- [ ] **Observe:** haptic latency — touch-to-buzz should read as instant
+  (<10 ms; it fires on raw pad contact, before the slider chord window).
+- [ ] **Observe:** single slider tap = exactly ONE tick (not a double ~75 ms
+  apart). If doubled, `dedup-ms` (90) has been set below the chord window.
+  A two-finger mute chord = two near-simultaneous ticks (one per pad) — this
+  is expected v1 behavior.
+- [ ] **Observe:** I²C bus health — CAP1188 @0x29 and DRV2605L @0x5A share
+  `&i2c1`; hammer zones while rolling the trackball, watch for bus errors in
+  the log.
+- **Power note (for item 7/DoD):** the DRV2605 is left out of standby while
+  awake (~0.5 mA quiescent). Sleep/standby gating lands with item 7's power
+  work (`PM_DEVICE` suspend already exists in the driver).
+
 <!--
 Items below are placeholders for the subsystems each numbered work-package PR
 introduces. Each PR appends its concrete tuning points and pass criteria here.
-## 6. DRV2605L haptics: LRA auto-cal + per-zone feel  — PR #5 (item 5)
 ## 7. SK6812 glow chain: order, color, duty           — PR #6 (item 6)
 ## 8. Wake: IMU wake-on-motion + CAP proximity        — PR #7 (item 7)
 ## 9. BLE profiles + gesture switch                   — PR #8 (item 8)
