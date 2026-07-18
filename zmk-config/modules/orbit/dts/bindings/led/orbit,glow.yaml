@@ -1,0 +1,53 @@
+# Copyright (c) 2026 ORBit
+# SPDX-License-Identifier: MIT
+
+description: |
+  ORBit glow scene engine (spec §4 item 6): drives the SK6812 chain through
+  the Zephyr led_strip API. Amber-family only, per the identity guardrails
+  (spec §7). Scenes: low-duty idle glow while active, per-zone flash on
+  touch, breathe (used by item 7 to mask BLE reconnect on proximity wake),
+  all-off on ZMK idle and sleep. No other animations.
+
+compatible: "orbit,glow"
+
+properties:
+  led-strip:
+    type: phandle
+    required: true
+    description: The led_strip device (worldsemi,ws2812-spi node).
+  input-dev:
+    type: phandle
+    required: true
+    description: Input device whose EV_KEY presses flash zone LEDs.
+  codes:
+    type: array
+    required: true
+    description: EV_KEY codes that flash a zone LED.
+  zone-leds:
+    type: array
+    required: true
+    description: LED chain index per code (same order/length as codes).
+  color-hex:
+    type: int
+    default: 0xFFB457
+    description: |
+      Base glow color as 0xRRGGBB. IDENTITY GUARDRAIL (spec §7): must stay
+      in the amber #FFB457 family — no RGB theatrics.
+  idle-brightness:
+    type: int
+    default: 8
+    description: Idle scene duty, percent of color-hex (the spec's "idle low duty").
+  flash-brightness:
+    type: int
+    default: 30
+    description: |
+      Zone-flash duty, percent. Also the effective global cap: spec limits
+      glow to <= 30% on battery.
+  flash-ms:
+    type: int
+    default: 180
+    description: Zone flash duration on touch.
+  breathe-period-ms:
+    type: int
+    default: 1600
+    description: One inhale+exhale of the breathe scene (item 7 wake mask).

@@ -14,6 +14,7 @@
  * these without including the header that defines them, so a fresh build never
  * compiled. (Per the badjeff driver README.) */
 #include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/led/led.h>
 
 / {
     chosen {
@@ -94,6 +95,26 @@
         boot-cal-delay-ms = <800>;
         /* lra-drive-time = <24>;    set once LRA resonant freq is known */
     };
+
+    /* Work item 6: glow scenes. zone-leds maps each touch code to its dot in
+     * the WEST->EAST chain (spec §3): CS4->0, CS5->1, CS6->2, CS1->3,
+     * CS3->4, CS2->5, CS7->6, CS8->7. Amber only; brightness percentages are
+     * the spec's "idle low duty" and <=30%-on-battery cap — both tuning
+     * points, see HARDWARE_VALIDATION.md §7. */
+    glow {
+        compatible = "orbit,glow";
+        led-strip = <&led_strip>;
+        input-dev = <&cap1188>;
+        codes = <INPUT_BTN_0 INPUT_BTN_1 INPUT_BTN_2 INPUT_BTN_3
+                 INPUT_BTN_4 INPUT_BTN_5 INPUT_BTN_6 INPUT_BTN_7>;
+        /*           CS1 CS2 CS3 CS4 CS5 CS6 CS7 CS8 */
+        zone-leds = <3   5   4   0   1   2   6   7>;
+        color-hex = <0xFFB457>;   /* IDENTITY: amber family only (spec §7) */
+        idle-brightness = <8>;
+        flash-brightness = <30>;
+        flash-ms = <180>;
+        breathe-period-ms = <1600>;
+    };
 };
 
 /* --- PMW3610 on SPI (3-wire) — needs the badjeff module in west.yml --- */
@@ -112,6 +133,20 @@
             psels = <NRF_PSEL(SPIM_SCK,  1, 13)>,
                     <NRF_PSEL(SPIM_MOSI, 1, 15)>,
                     <NRF_PSEL(SPIM_MISO, 0,  6)>;
+            low-power-enable;
+        };
+    };
+
+    /* Glow chain data on D6. MOSI-only: the ws2812-spi driver just streams
+     * the bit pattern; no clock or return line exists. */
+    spi_led_default: spi_led_default {
+        group1 {
+            psels = <NRF_PSEL(SPIM_MOSI, 1, 11)>;   /* D6 LED_DIN */
+        };
+    };
+    spi_led_sleep: spi_led_sleep {
+        group1 {
+            psels = <NRF_PSEL(SPIM_MOSI, 1, 11)>;
             low-power-enable;
         };
     };
@@ -142,6 +177,32 @@
         y-input-code = <INPUT_REL_Y>;
         /* Uncomment/adjust after the first test to fix direction: */
         /* swap-xy; invert-x; invert-y; */
+    };
+};
+
+/* --- SK6812MINI-E glow chain ×8 on D6 (work item 6) ---
+ * Instance bookkeeping (see the SPIM1/TWIM1 note above): SPIM2 (@0x40023000)
+ * has no TWI sibling and nothing else uses instance 2, so the strip gets it.
+ * In use now: TWIM1 = i2c1 (touch+haptics), SPIM2 = LEDs, SPIM3 = trackball.
+ * SK6812 timing at 4 MHz SPI: 0b0111'0000 one / 0b0100'0000 zero; >= 80 us
+ * reset latch, so 120 for margin. Chain order is WEST->EAST (spec §3):
+ * LED0-5 = zone dots over CS4,CS5,CS6,CS1,CS3,CS2; LED6/7 = slider. */
+&spi2 {
+    compatible = "nordic,nrf-spim";
+    status = "okay";
+    pinctrl-0 = <&spi_led_default>;
+    pinctrl-1 = <&spi_led_sleep>;
+    pinctrl-names = "default", "sleep";
+
+    led_strip: ws2812@0 {
+        compatible = "worldsemi,ws2812-spi";
+        reg = <0>;
+        spi-max-frequency = <4000000>;
+        chain-length = <8>;
+        color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
+        spi-one-frame = <0x70>;
+        spi-zero-frame = <0x40>;
+        reset-delay = <120>;
     };
 };
 

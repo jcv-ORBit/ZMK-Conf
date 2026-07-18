@@ -24,3 +24,14 @@ config ORBIT_HAPTIC_FEEDBACK
 	  LRA auto-calibration once at boot, persisting the result via settings
 	  (spec item 5: init + auto-cal at boot with persist, per-zone effect,
 	  touch-to-haptic < 10 ms).
+
+config ORBIT_GLOW
+	bool "ORBit SK6812 glow engine"
+	default y
+	depends on DT_HAS_ORBIT_GLOW_ENABLED
+	depends on LED_STRIP
+	depends on INPUT
+	help
+	  Amber glow scenes on the SK6812 chain (spec item 6): low-duty idle,
+	  zone flash on touch, breathe hook for item 7's wake mask, all-off on
+	  ZMK idle/sleep. Subscribes to ZMK activity events.

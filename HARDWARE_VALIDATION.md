@@ -167,10 +167,36 @@ the per-zone map are the repo-local `orbit,haptic-feedback` glue
   awake (~0.5 mA quiescent). Sleep/standby gating lands with item 7's power
   work (`PM_DEVICE` suspend already exists in the driver).
 
-<!--
-Items below are placeholders for the subsystems each numbered work-package PR
-introduces. Each PR appends its concrete tuning points and pass criteria here.
-## 7. SK6812 glow chain: order, color, duty           — PR #6 (item 6)
+## 7. SK6812 glow chain: order, color, duty  _(PR item 6)_
+Rendering is the repo-local `orbit,glow` engine (`modules/orbit/src/glow.c`)
+on the stock Zephyr `worldsemi,ws2812-spi` driver (SPIM2, MOSI-only on D6).
+Tune **with the TPU sleeve fitted** — the lenses diffuse and dim the dots.
+- [ ] **Observe:** at boot, all 8 dots come up faint amber (idle scene).
+  **Expected:** color reads as warm amber (#FFB457 family) through the
+  sleeve, no green/blue tint. If tinted, the strip's color order is off —
+  fix `color-mapping` on the `ws2812@0` node (SK6812 variants exist in GRB
+  and RGB).
+- [ ] **Observe:** touch CS4 (west-most zone). **Expected:** the WEST-most
+  dot (LED0) flashes brighter for ~180 ms. Walk all zones: CS4→0, CS5→1,
+  CS6→2, CS1→3, CS3→4, CS2→5, CS7→6, CS8→7. If the pattern is mirrored, the
+  chain was routed east→west — reverse `zone-leds` on the `glow` node.
+- [ ] **Observe:** idle duty and flash brightness through the sleeve.
+  **Tune:** `idle-brightness` (8%) and `flash-brightness` (30%) on the
+  `glow` node. **The 30% is a spec cap on battery, not a starting point** —
+  go down, not up. All-LED current at 30% ≈ tens of mA; check the power
+  budget (§12) before raising anything.
+- [ ] **Observe:** leave the device untouched for the ZMK idle timeout
+  (30 s default). **Expected:** glow fades to fully off (quiet-desk
+  identity + battery). Touch → idle scene returns instantly.
+- [ ] **Observe:** after deep sleep (30 min) or power-off, ALL LEDs are
+  dark. WS2812s latch their last frame — if any dot stays lit in sleep, the
+  sleep-blank path failed; check the activity listener log.
+- [ ] **Observe:** first LED glitches/flickers at low battery. SK6812 on a
+  battery-voltage rail with 3.3 V logic is in-margin per spec §2, but
+  marginal near full charge (4.2 V rail wants ≥ 2.9 V data-high). If seen,
+  it's the hardware series-resistor/level topic from the spec, not firmware.
+- **Note:** the breathe scene exists (`orbit_glow_breathe()`) but nothing
+  triggers it until item 7 wires it to proximity wake.
 ## 8. Wake: IMU wake-on-motion + CAP proximity        — PR #7 (item 7)
 ## 9. BLE profiles + gesture switch                   — PR #8 (item 8)
 ## 10. Crown wheel scroll                             — PR #9 (item 9)
