@@ -12,6 +12,8 @@ if(CONFIG_ORBIT_INPUT_PROCESSOR_CHORD OR CONFIG_ORBIT_HAPTIC_FEEDBACK
     src/wake.c)
   zephyr_library_sources_ifdef(CONFIG_ORBIT_PROFILE_INDICATOR
     src/profile_indicator.c)
+  zephyr_library_sources_ifdef(CONFIG_ORBIT_TEST_MODE
+    src/test_mode.c)
   if(CONFIG_ORBIT_GLOW OR CONFIG_ORBIT_WAKE OR CONFIG_ORBIT_PROFILE_INDICATOR)
     # ZMK event headers (<zmk/...>). ZMK is the *application* (west build
     # -s zmk/app), not a Zephyr module, so its include/ is reached through

@@ -270,11 +270,26 @@ is held.
 - [ ] **Observe:** volume still works from slider taps only (CS7 down /
   CS8 up, chord = mute); nothing else emits volume anymore.
 
+## 11. Manufacturing test mode  _(spec §6)_
+Flash the **`vessel-testmode-xiao_ble`** CI artifact (a separate uf2 — the
+normal build never contains any of this). Open the USB CDC serial console
+(it enumerates alongside HID; logs start ~3 s after boot).
+- [ ] **Observe:** banner `=== ORBit MANUFACTURING TEST MODE ===`, then:
+  - **LED walk** — one LED per second, 0→7, forever. Any dark position =
+    that LED or its data-in joint.
+  - **Haptic sweep** — one ROM effect per 8-second lap (`HAPTIC effect N`
+    in the log). Note the IDs that feel right for §6's per-zone table.
+  - **Touch dumps** — every zone press/release logs `TOUCH code=N`.
+  - **Trackball** — roll it; per-second `TRACKBALL dx dy` summaries.
+  - **IMU** — per-second raw accel; flip the unit and watch z change sign.
+  - Crown detents are verified via host scroll (item 9), not the log —
+    the encoder is a ZMK sensor, not an input device.
+- **Not covered:** speaker tone — audio is Phase-2 scope (spec §5); there is
+  no amp path in v1 firmware to exercise. Add a tone step when I2S lands.
+
 <!--
-Items below are placeholders for the subsystems each numbered work-package PR
-introduces. Each PR appends its concrete tuning points and pass criteria here.
-## 11. Manufacturing test mode                        — spec §6
 ## 12. Power budget                                   — DoD
      (soft-sleep < 50 µA; active < 5 mA avg w/ glow at duty; 30-day standby
       on 450 mAh; survives sleeve on/off without retune — auto-recal on wake)
+      Measured via §8's sleep checks + §7's duty tuning; record numbers here.
 -->

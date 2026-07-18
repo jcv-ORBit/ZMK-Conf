@@ -55,3 +55,12 @@ config ORBIT_PROFILE_INDICATOR
 	help
 	  Haptic tick and LED index blink on every active-profile change
 	  (spec item 8: "haptic tick per step, LED0-4 blink index").
+
+config ORBIT_TEST_MODE
+	bool "ORBit manufacturing test mode"
+	default n
+	depends on INPUT
+	help
+	  Hidden bench build (spec §6): LED walk, DRV2605 effect sweep, and
+	  touch/trackball/IMU dumps over the USB CDC console. Enable ONLY via
+	  vessel_testmode.conf as an EXTRA_CONF_FILE — never in vessel.conf.
