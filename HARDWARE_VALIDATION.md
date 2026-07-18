@@ -254,10 +254,25 @@ profile's bond — deliberate friction, see below).
   other path (e.g. `&bt` bindings added later, or a host-initiated switch) —
   the indicator listens to ZMK's profile event, not the gesture.
 
+## 10. Crown wheel scroll  _(PR item 9)_
+The crown is now a true mouse wheel (`&msc` per detent); volume lives on the
+slider. The profile layer (§9) still overrides the crown while a slider pad
+is held.
+- [ ] **Observe:** spin the crown in a scrollable window. **Expected:** one
+  wheel step per detent, spin-toward-you = scroll down. If inverted, swap
+  `SCRL_DOWN`/`SCRL_UP` on `rot_scroll` in `vessel.keymap` — OR swap
+  `a-gpios`/`b-gpios` in the overlay if §2's direction check also failed
+  (fix the hardware sense once, not twice).
+- [ ] **Observe:** scroll feel vs. detent count. 24 edges/rev = 24 wheel
+  ticks/rev. If that reads too fast/slow on-device, the knobs are `steps`
+  on the encoder node (§2) or a scaler processor later — capture the feel
+  here first.
+- [ ] **Observe:** volume still works from slider taps only (CS7 down /
+  CS8 up, chord = mute); nothing else emits volume anymore.
+
 <!--
 Items below are placeholders for the subsystems each numbered work-package PR
 introduces. Each PR appends its concrete tuning points and pass criteria here.
-## 10. Crown wheel scroll                             — PR #9 (item 9)
 ## 11. Manufacturing test mode                        — spec §6
 ## 12. Power budget                                   — DoD
      (soft-sleep < 50 µA; active < 5 mA avg w/ glow at duty; 30-day standby

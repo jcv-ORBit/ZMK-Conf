@@ -25,6 +25,15 @@
             #sensor-binding-cells = <0>;
             bindings = <&bt BT_NXT>, <&bt BT_PRV>;
         };
+        /* Item 9: crown = true wheel scroll. One wheel tick per detent
+         * (24/rev). If direction is inverted on the bench, swap SCRL_DOWN/
+         * SCRL_UP here (or swap a-gpios/b-gpios in the overlay — one fix,
+         * not both). */
+        rot_scroll: rot_scroll {
+            compatible = "zmk,behavior-sensor-rotate";
+            #sensor-binding-cells = <0>;
+            bindings = <&msc SCRL_DOWN>, <&msc SCRL_UP>;
+        };
     };
 
     /* Work items 2+3: CAP1188 touch -> ZMK behaviors.
@@ -86,10 +95,10 @@
                 &none
             >;
 
-            /* Scroll ring. Defaults to volume (works out of the box).
-             * For mouse-wheel instead, see ZMK pointing/scroll docs and swap
-             * this for a scroll behavior. */
-            sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN>;
+            /* Item 9: the crown is a real scroll wheel now; volume belongs
+             * to the slider (CS7/CS8, item 4). Spin toward you = scroll
+             * down, the mouse-wheel convention. */
+            sensor-bindings = <&rot_scroll>;
         };
 
         profile {
