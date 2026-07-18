@@ -9,6 +9,10 @@
  */
 
 #include <dt-bindings/zmk/matrix_transform.h>
+/* PMW3610 node below uses INPUT_EV_REL / INPUT_REL_X/Y — the seed referenced
+ * these without including the header that defines them, so a fresh build never
+ * compiled. (Per the badjeff driver README.) */
+#include <zephyr/dt-bindings/input/input-event-codes.h>
 
 / {
     chosen {
