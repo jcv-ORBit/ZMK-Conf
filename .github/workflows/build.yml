@@ -9,10 +9,10 @@
 # every west step from the zmk-config/ topdir, so the nested layout the repo
 # deliberately keeps (tracking only zmk-config/ + docs) works untouched.
 #
-# Container pinned to :3.5 to match ZMK v0.3.0's Zephyr (v3.5.0+zmk-fixes); the
-# moving :stable tag is now Zephyr 4.1 and would mismatch. Upstream revisions
-# are pinned in zmk-config/config/west.yml (zmk@v0.3.0 — last release shipping
-# the seeeduino_xiao_ble board the spec DoD requires).
+# Container pinned to :4.1 to match ZMK main's Zephyr (v4.1.0+zmk-fixes).
+# Upstream revisions are pinned in zmk-config/config/west.yml (zmk@main SHA,
+# Hardware Model v2, board `xiao_ble` — the modern name for the XIAO nRF52840,
+# chosen so the CAP1188 can use the stock microchip,cap12xx driver).
 name: Build
 
 on:
@@ -23,9 +23,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Build (seeeduino_xiao_ble, vessel)
+    name: Build (xiao_ble, vessel)
     container:
-      image: zmkfirmware/zmk-build-arm:3.5
+      image: zmkfirmware/zmk-build-arm:4.1
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,13 +46,13 @@ jobs:
       - name: Build vessel
         working-directory: zmk-config
         run: |
-          west build -s zmk/app -b seeeduino_xiao_ble -- \
+          west build -s zmk/app -b xiao_ble -- \
             -DSHIELD=vessel \
             -DZMK_CONFIG="$GITHUB_WORKSPACE/zmk-config/config"
 
       - name: Upload firmware (zmk.uf2)
         uses: actions/upload-artifact@v4
         with:
-          name: vessel-seeeduino_xiao_ble
+          name: vessel-xiao_ble
           path: zmk-config/build/zephyr/zmk.uf2
           if-no-files-found: warn

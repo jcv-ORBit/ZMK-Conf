@@ -7,10 +7,11 @@ manifest:
   projects:
     - name: zmk
       remote: zmkfirmware
-      # Pinned: v0.3.0 is the last ZMK release that still ships the
-      # `seeeduino_xiao_ble` board (main renamed it to seeed/xiao_ble under
-      # Hardware Model v2). This transitively pins Zephyr via app/west.yml.
-      revision: v0.3.0
+      # Pinned to a modern main SHA (Hardware Model v2, board `xiao_ble`,
+      # Zephyr 4.1). Chosen so the CAP1188 can use Zephyr's stock
+      # `microchip,cap12xx` input driver (absent from the older v0.3.0 /
+      # Zephyr 3.5 line). Transitively pins Zephyr via app/west.yml.
+      revision: 83bc82dbfdcda4ef392461202534a7cc337ca055
       import: app/west.yml
     # PMW3610 trackball driver (community). Pinned to a specific commit so a
     # green build stays reproducible instead of floating on the fork's main.
